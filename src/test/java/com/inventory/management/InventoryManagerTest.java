@@ -67,4 +67,18 @@ public class InventoryManagerTest {
         Product found = manager.findProduct(999);
         assertNull(found, "Search for non-existing ID 999 should return null");
     }
+
+    @Test
+    void testLowStockAlert() {
+        manager.addProduct(new Product(101, "Laptop", 55000.0, 3));
+        manager.addProduct(new Product(102, "Keyboard", 1500.0, 25));
+        manager.addProduct(new Product(103, "Mouse", 800.0, 2));
+
+        // Threshold = 5 -> Laptop (3) and Mouse (2) should be low stock
+        java.util.List<Product> lowStock = manager.getLowStockProducts(5);
+        assertEquals(2, lowStock.size(), "Should find 2 low stock products");
+        assertTrue(lowStock.stream().anyMatch(p -> p.getName().equals("Laptop")));
+        assertTrue(lowStock.stream().anyMatch(p -> p.getName().equals("Mouse")));
+        assertFalse(lowStock.stream().anyMatch(p -> p.getName().equals("Keyboard")));
+    }
 }

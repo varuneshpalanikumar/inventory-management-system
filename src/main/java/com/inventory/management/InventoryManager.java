@@ -72,6 +72,17 @@ public class InventoryManager {
         return false;
     }
 
+    // Check and return products below a low-stock threshold
+    public List<Product> getLowStockProducts(int threshold) {
+        List<Product> lowStock = new ArrayList<>();
+        for (Product product : products) {
+            if (product.getQuantity() < threshold) {
+                lowStock.add(product);
+            }
+        }
+        return lowStock;
+    }
+
     // Getter for products list (helpful for testing)
     public List<Product> getProducts() {
         return products;
