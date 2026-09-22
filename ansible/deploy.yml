@@ -1,0 +1,75 @@
+---
+- name: Deploy Inventory Management System to Remote Server
+  hosts: appserver
+  become: true
+  vars:
+    app_name: inventory-management-system
+    app_dir: /opt/inventory-management
+    jar_name: inventory-management-system-1.0-SNAPSHOT.jar
+    app_user: "{{ ansible_user | default('varun') }}"
+
+  tasks:
+    - name: Step 1 - Ensure application directory exists on remote server
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0755'
+
+    - name: Step 2 - Stop any existing running application instance
+      ansible.builtin.command:
+        cmd: pkill -f "{{ jar_name }}"
+      register: stop_process
+      failed_when: false
+      changed_when: stop_process.rc == 0
+
+    - name: Step 3 - Copy JAR file from control node to remote server
+      ansible.builtin.copy:
+        src: "../target/{{ jar_name }}"
+        dest: "{{ app_dir }}/{{ jar_name }}"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0755'
+
+    - name: Step 4 - Verify JAR exists on remote server
+      ansible.builtin.stat:
+        path: "{{ app_dir }}/{{ jar_name }}"
+      register: jar_file
+
+    - name: Step 4b - Assert JAR file exists
+      ansible.builtin.assert:
+        that:
+          - jar_file.stat.exists
+        fail_msg: "JAR file was not found at {{ app_dir }}/{{ jar_name }}"
+        success_msg: "JAR file verified at {{ app_dir }}/{{ jar_name }}"
+
+    - name: Step 5 - Start the Java application in background daemon mode
+      ansible.builtin.shell:
+        cmd: "nohup java -jar {{ app_dir }}/{{ jar_name }} --daemon > {{ app_dir }}/app.log 2>&1 &"
+      become: true
+      become_user: "{{ app_user }}"
+
+    - name: Step 5b - Wait briefly for application to initialize
+      ansible.builtin.pause:
+        seconds: 3
+
+    - name: Step 6 - Verify Java application process is running
+      ansible.builtin.command:
+        cmd: pgrep -af "{{ jar_name }}"
+      register: java_process
+      changed_when: false
+
+    - name: Display running Java process details
+      ansible.builtin.debug:
+        msg: "Java Process Running: {{ java_process.stdout }}"
+
+    - name: Step 6b - Read application log output
+      ansible.builtin.command:
+        cmd: cat {{ app_dir }}/app.log
+      register: app_log
+      changed_when: false
+
+    - name: Display Application Startup Log
+      ansible.builtin.debug:
+        var: app_log.stdout_lines
