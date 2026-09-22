@@ -5,6 +5,27 @@ import java.util.Scanner;
 public class Main {
     public static void main(String[] args) {
         InventoryManager manager = new InventoryManager();
+
+        // Non-interactive / background service mode for remote server deployment (DevOps demo)
+        if (args.length > 0 && args[0].equalsIgnoreCase("--daemon")) {
+            System.out.println("==================================================");
+            System.out.println("Inventory Management System started successfully.");
+            System.out.println("Mode: Non-Interactive / Background Service");
+            manager.addProduct(new Product(101, "Laptop", 55000.0, 10));
+            manager.addProduct(new Product(102, "Keyboard", 1500.0, 25));
+            manager.addProduct(new Product(103, "Mouse", 800.0, 30));
+            System.out.println("Total products: " + manager.getProducts().size());
+            System.out.println("Application is running.");
+            System.out.println("==================================================");
+            try {
+                // Keep the Java process alive for deployment demonstration
+                Thread.currentThread().join();
+            } catch (InterruptedException e) {
+                System.out.println("Application shutting down.");
+            }
+            return;
+        }
+
         Scanner scanner = new Scanner(System.in);
         boolean running = true;
 
@@ -19,6 +40,9 @@ public class Main {
             System.out.println("7. Exit");
             System.out.print("Enter your choice: ");
 
+            if (!scanner.hasNextLine()) {
+                break;
+            }
             String input = scanner.nextLine().trim();
             int choice;
             try {
